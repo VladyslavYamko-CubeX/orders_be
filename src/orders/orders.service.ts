@@ -1,45 +1,29 @@
 import { Injectable } from '@nestjs/common';
-export interface Order {
-  id: string;
-  order: string;
-  date: number;
-  customer: string;
-  total: string;
-  attributedStaffName: string;
-  commission: string;
-}
-const orders: Order[] = [
-  {
-    id: '1020',
-    order: '#1020',
-    date: new Date(2024, 6, 29).getTime(),
-    customer: 'Jaydon Stanton',
-    total: '$969.44',
-    attributedStaffName: 'Jaydon Westerfelt',
-    commission: '$8.24',
-  },
-  {
-    id: '1019',
-    order: '#1019',
-    date: new Date(2024, 6, 30).getTime(),
-    customer: 'Ruben Westerfelt',
-    total: '$701.19',
-    attributedStaffName: 'Leo Westerfelt',
-    commission: '$8.24',
-  },
-  {
-    id: '1018',
-    order: '#1018',
-    date: new Date(2024, 6, 31).getTime(),
-    customer: 'Leo Carder',
-    total: '$798.24',
-    attributedStaffName: 'Ruben Carder',
-    commission: '$8.24',
-  },
-];
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Order } from 'src/schemas/order.schema';
+
 @Injectable()
 export class OrdersService {
-  getAll(): Order[] {
+  constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
+
+  calculateOrder(orders: Partial<Order[]>): Order[] {
+    orders.forEach((order) => {
+      const date = new Date(order.date);
+      if (date.getDay() !== 0 || date.getDay() !== 6) {
+        order.commission = `$${(+order.total.replace('$', '') * 0.03).toFixed(2)}`;
+      } else {
+        order.commission = `$${(+order.total.replace('$', '') * 0.3).toFixed(2)}`;
+      }
+      return order;
+    });
+
     return orders;
+  }
+
+  async getAll(): Promise<Order[]> {
+    const orders: Order[] = await this.orderModel.find().exec();
+    const calcOrders = this.calculateOrder(orders);
+    return calcOrders;
   }
 }
